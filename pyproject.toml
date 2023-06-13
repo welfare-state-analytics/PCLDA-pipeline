@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pclda-pipeline"
+version = "0.1.0"
+description = "Pipeline for Westac"
+authors = ["liamtabib <liam.tab7@gmail.com>"]
+readme = "README.md"
+packages = [{include = "pclda_pipeline"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.0.2"
+jupyterlab = "^4.0.2"
+
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.17.4"
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
