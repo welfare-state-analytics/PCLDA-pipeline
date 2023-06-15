@@ -1,6 +1,0 @@
-1. Är matrisen rätt format? Z filen är aktiverad med flagga log topic indicator. Fråga måns
-2. Vi får ut, var tionde iteration, en topic indicator fil; är det den sista iterationen som är vår utdata, eller ska vi ta ett genomsnitt av antal topic filer? 
-3. Återskapa dokument topik vikt matriser, där grupperas filen på dokument och topic. antal gånger topic k dyker upp/totalt antal rader för dokumentet. 
-4. Skapa vokabulär: Få ut det genom pclda java eller loopa igenom Z-filen och använda defaultdikt för att skapa en enumaration till varje unikt ord
-5. Ladda vokabulären som en dikt. Gruppera på Z-filen, på topic och type, och räkna antal förekomsten för varje ord och dividare med totalt antal förekomster för alla ord för det topic. Detta görs för hela state filen.
-

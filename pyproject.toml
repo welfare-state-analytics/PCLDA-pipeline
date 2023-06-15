@@ -10,6 +10,7 @@ packages = [{include = "pclda_pipeline"}]
 python = "^3.10"
 pandas = "^2.0.2"
 jupyterlab = "^4.0.2"
+progressbar = "^2.5"
 
 
 [tool.poetry.group.dev.dependencies]
