@@ -16,6 +16,7 @@ progressbar = "^2.5"
 [tool.poetry.group.dev.dependencies]
 pylint = "^2.17.4"
 black = "^23.3.0"
+pytest = "^7.3.2"
 
 [build-system]
 requires = ["poetry-core"]
