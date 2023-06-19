@@ -153,3 +153,4 @@ typings
 data
 *.out
 logs
+**/tm-bundle*/
