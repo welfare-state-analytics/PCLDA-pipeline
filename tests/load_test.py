@@ -1,6 +1,8 @@
-import pandas as pd
+import glob
+import os
 
-from pclda_pipeline.convert import to_document_topic_weights, to_topic_token_weights, combine_weights
+import pandas as pd
+from pclda_pipeline.convert import combine_weights, to_dictionary, to_document_topic_weights, to_topic_token_weights
 
 
 def test_to_document_topic_weights():
@@ -31,3 +33,10 @@ def test_combine_to_topic_token_weights():
     topic_token_weights: pd.DataFrame = combine_weights(["topic_id", "token_id"], *data)
     assert topic_token_weights is not None
     assert set(topic_token_weights.columns) == set(["topic_id", "token_id", "weight"])
+
+
+def test_to_dictionary():
+    os.makedirs("tests/output", exist_ok=True)
+    filenames: str = glob.glob("pclda_pipeline/z_*.csv")
+    to_dictionary("tests/output", *filenames)
+    assert os.path.exists("tests/output/dictionary.zip")
