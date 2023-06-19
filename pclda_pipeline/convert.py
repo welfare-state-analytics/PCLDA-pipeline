@@ -1,6 +1,7 @@
-from collections import defaultdict
+import csv
 import os
 from datetime import datetime
+from typing import Callable
 
 import click
 import pandas as pd
@@ -58,16 +59,23 @@ def to_combined_weights(target_folder: str, *filenames: list[str]) -> None:
         "topic_token_weights": (to_topic_token_weights, ["topic_id", "token_id"]),
     }
 
+    dataframes: list[pd.DataFrame] = []
+
     for target, (to_fx, target_columns) in config.items():
         logger.info(f"Computing: {target} {' '.join(filenames)}")
         data: list[pd.DataFrame] = [to_fx(filename) for filename in filenames]
 
         logger.info(f"Combining: {' '.join(filenames)}")
+
         weights: pd.DataFrame = combine_weights(target_columns, *data)
+
+        dataframes.append(weights)
 
         logger.info(f"Storing result in folder: {target_folder}")
 
         to_zip(weights, f"{target_folder}/{target}.zip", f"{target}.csv", sep='\t', index=True)
+
+    return (dataframes[0], dataframes[1])
 
 
 def to_dictionary(target_folder: str, *filenames: list[str]) -> None:
@@ -79,35 +87,73 @@ def to_dictionary(target_folder: str, *filenames: list[str]) -> None:
         if dictionary is None:
             dictionary = data
         else:
-            dictionary = pd.concat([dictionary, data[~data.index.isin(dictionary.index)]])
+            data = data[~data.index.isin(dictionary.index)]
+            if len(data) > 0:
+                dictionary = pd.concat([dictionary, data[~data.index.isin(dictionary.index)]])
     dictionary['dfs'] = 0
 
-    to_zip(dictionary, f"{target_folder}/dictionary.zip", "dictionary.csv", sep='\t', index=True)
+    to_zip(
+        dictionary, f"{target_folder}/dictionary.zip", "dictionary.csv", sep='\t', index=True, quoting=csv.QUOTE_MINIMAL
+    )
 
-    # overview: pd.DataFrame = (
-    #     topic_token_weights.groupby('topic_id')
-    #     .apply(lambda x: sorted(list(zip(x["token"], x["weight"])), key=lambda z: z[1], reverse=True))
-    #     .apply(lambda x: ' '.join([z[0] for z in x][:n_tokens]))
-    #     .reset_index()
-    # )
-    # overview.columns = ['topic_id', 'tokens']
-    # overview['alpha'] = overview.topic_id.apply(lambda topic_id: alpha[topic_id]) if alpha is not None else 0.0
+    return dictionary
 
 
-@click.command(help="python topic_states/combine_states.py  statefile1 statefile2 ... statefileN")
+def to_topic_token_overview(
+    target_folder: str, topic_token_weights: pd.DataFrame, dictionary: pd.DataFrame, n_tokens: int = 500
+) -> pd.DataFrame:
+    tx: Callable[[int, str], str] = dictionary['token'].to_dict().get
+    overview: pd.DataFrame = (
+        topic_token_weights.groupby('topic_id')
+        .apply(lambda x: sorted(list(zip(x["token_id"], x["weight"])), key=lambda z: z[1], reverse=True))
+        .apply(lambda x: ' '.join([str(tx(z[0], "")) for z in x][:n_tokens]))
+        .reset_index()
+    )
+    overview.columns = ['topic_id', 'tokens']
+    overview['alpha'] = 0.0
+
+    to_zip(
+        overview.set_index('topic_id'),
+        f"{target_folder}/topic_token_overview.zip",
+        "topic_token_overview.csv",
+        sep='\t',
+        index=True,
+        quoting=csv.QUOTE_MINIMAL,
+    )
+
+    return overview
+
+
+@click.command(help="python topic_states/convert.py  statefile_1 statefile_2 ... statefile_n")
 @click.argument("filenames", nargs=-1, type=click.Path(exists=True))
 @click.option("--target-folder", type=str, default=None)
 def main(filenames, target_folder: str = None):
-    if target_folder is None:
-        target_folder = f"tm-bundle-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    try:
+        if target_folder is None:
+            target_folder = f"tm-bundle-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
-    print(f"Combining: {' '.join(filenames)}")
+        print(f"Combining: {' '.join(filenames)}")
 
-    os.makedirs(target_folder, exist_ok=True)
+        os.makedirs(target_folder, exist_ok=True)
 
-    to_combined_weights(target_folder, *filenames)
-    to_dictionary(target_folder, *filenames)
+        _, topic_token_weights = to_combined_weights(target_folder, *filenames)
+        dictionary: pd.DataFrame = to_dictionary(target_folder, *filenames)
+        to_topic_token_overview(target_folder, topic_token_weights, dictionary, 500)
+    except Exception as e:
+        logger.exception(e)
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pylint: disable=no-value-for-parameter
+
+    # from click.testing import CliRunner
+
+    # runner: CliRunner = CliRunner()
+    # result = runner.invoke(
+    #     main,
+    #     [
+    #         "pclda_pipeline/z_190.csv",
+    #         "pclda_pipeline/z_240.csv",
+    #         "pclda_pipeline/z_250.csv",
+    #     ],
+    # )
