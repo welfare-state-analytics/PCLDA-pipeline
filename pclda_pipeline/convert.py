@@ -17,7 +17,9 @@ def compute_weights(filename: str, target_columns: tuple[str, str]) -> pd.DataFr
     source2target = {"#doc": 'document_id', "topic": "topic_id", "typeindex": "token_id"}
     target2source = {v: k for k, v in source2target.items()}
 
-    data: pd.DataFrame = pd.read_csv(filename, sep=" ", usecols=list(map(target2source.get, target_columns)))
+    data: pd.DataFrame = pd.read_csv(
+        filename, sep=" ", usecols=list(map(target2source.get, target_columns)), quoting=csv.QUOTE_NONE
+    )
     data.columns = [source2target.get(column, column) for column in data.columns]
 
     group_counts = data.groupby(target_columns).agg(group_count=(target_columns[1], "size"))
@@ -81,7 +83,7 @@ def to_combined_weights(target_folder: str, *filenames: list[str]) -> None:
 def to_dictionary(target_folder: str, *filenames: list[str]) -> None:
     dictionary: pd.DataFrame = None
     for filename in filenames:
-        data: pd.DataFrame = pd.read_csv(filename, sep=" ", usecols=[3, 4])
+        data: pd.DataFrame = pd.read_csv(filename, sep=" ", usecols=[3, 4], quoting=csv.QUOTE_NONE)
         data.columns = ["token_id", "token"]
         data = data.drop_duplicates('token_id').set_index('token_id')
         if dictionary is None:
