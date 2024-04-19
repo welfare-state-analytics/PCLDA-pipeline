@@ -49,16 +49,16 @@ def to_document_topic_weights(filename: str) -> pd.DataFrame:
     return weights
 
 
-def to_topic_token_weights(filename: str) -> pd.DataFrame:
+def to_topic_type_weights(filename: str) -> pd.DataFrame:
     """Reads a state file and returns a topic-token weights dataframe."""
     weights = compute_weights(filename, target_columns=["topic_id", "token_id"])
     return weights
 
-
+# topic_type_weights is now renamed to topic_type_weights
 def to_combined_weights(target_folder: str, *filenames: list[str]) -> None:
     config = {
         "document_topic_weights": (to_document_topic_weights, ["document_id", "topic_id"]),
-        "topic_token_weights": (to_topic_token_weights, ["topic_id", "token_id"]),
+        "topic_type_weights": (to_topic_type_weights, ["topic_id", "token_id"]),
     }
 
     dataframes: list[pd.DataFrame] = []
@@ -101,12 +101,12 @@ def to_dictionary(target_folder: str, *filenames: list[str]) -> None:
     return dictionary
 
 
-def to_topic_token_overview(
-    target_folder: str, topic_token_weights: pd.DataFrame, dictionary: pd.DataFrame, n_tokens: int = 500
+def to_top_types_per_topic(
+    target_folder: str, topic_type_weights: pd.DataFrame, dictionary: pd.DataFrame, n_tokens: int = 500
 ) -> pd.DataFrame:
     tx: Callable[[int, str], str] = dictionary['token'].to_dict().get
     overview: pd.DataFrame = (
-        topic_token_weights.groupby('topic_id')
+        topic_type_weights.groupby('topic_id')
         .apply(lambda x: sorted(list(zip(x["token_id"], x["weight"])), key=lambda z: z[1], reverse=True))
         .apply(lambda x: ' '.join([str(tx(z[0], "")) for z in x][:n_tokens]))
         .reset_index()
@@ -116,8 +116,8 @@ def to_topic_token_overview(
 
     to_zip(
         overview.set_index('topic_id'),
-        f"{target_folder}/topic_token_overview.zip",
-        "topic_token_overview.csv",
+        f"{target_folder}/top_types_per_topic.zip",
+        "top_types_per_topic.csv",
         sep='\t',
         index=True,
         quoting=csv.QUOTE_MINIMAL,
@@ -138,9 +138,9 @@ def main(filenames, target_folder: str = None):
 
         os.makedirs(target_folder, exist_ok=True)
 
-        _, topic_token_weights = to_combined_weights(target_folder, *filenames)
+        _, topic_type_weights = to_combined_weights(target_folder, *filenames)
         dictionary: pd.DataFrame = to_dictionary(target_folder, *filenames)
-        to_topic_token_overview(target_folder, topic_token_weights, dictionary, 500)
+        to_top_types_per_topic(target_folder, topic_type_weights, dictionary, 500)
     except Exception as e:
         logger.exception(e)
 
